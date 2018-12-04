@@ -3,6 +3,7 @@ import math
 import numpy as np
 import pickle as pkl
 import time
+from keras.utils import np_utils
 from deap import creator, base, tools, algorithms, benchmarks, cma
 from nn import build_logistic_model
 from scipy.stats import norm
@@ -11,6 +12,7 @@ import math
 from math import factorial as fact
 
 np.random.seed(42)
+N = 128
 
 creator.create("FitnessMax", base.Fitness, weights=(1.0,))
 creator.create("Individual", list, fitness=creator.FitnessMax)
@@ -47,27 +49,18 @@ def init_bits_dist():
 
 bits_distribution = init_bits_dist()
 bits_multiplier = 1 / bits_distribution(127.5)
+epochs = 30
 
 
 def loss(x):
-    fitted, mask = delta_list(x_val, x)
-    count = len(fitted)
-    good = 0
-    # start = time.time()
-    cnt = [0, 0]
-    for i in range(count):
-        cnt[fitted[i]] += 1
-        if fitted[i] == y_val[i]:
-            good += 1
-    # print(cnt, good, abs(np.corrcoef(fitted, y_val[:count])[0][1]))
-    # print(time.time() - start, good, count, good/count)
-    # res = np.corrcoef(fitted, y_val[:count])
-    # print(sum(mask), bits_multiplier * bits_distribution(sum(mask)))
-    return (good/count * bits_multiplier * bits_distribution(sum(mask)), )
-    # return (np.abs(res[0][1]), )
-
-
-N = 8
+    challenges, mask = generate_challenges(x_val, x)
+    ch_train = np.asarray(challenges)
+    l_model = build_logistic_model(input_dim=N, output_dim=2)
+    history = l_model.fit(ch_train, Y_val, epochs=epochs, batch_size=int(100), verbose=0)
+    score = l_model.evaluate(ch_train, Y_val, verbose=0)
+    res = score[1] * bits_multiplier * bits_distribution(sum(mask))
+    print(score[1], res)
+    return (res, )
 
 
 def load_dumped(n, method=3):
@@ -82,36 +75,13 @@ def load_dumped(n, method=3):
     return train_data, val_data, test_data
 
 
-train_data, val_data, test_data = load_dumped(n=8)
+train_data, val_data, test_data = load_dumped(n=N)
 x_train, y_train = list(map(np.array, zip(*train_data)))
 x_val, y_val = list(map(np.array, zip(*test_data)))
 x_test, y_test = list(map(np.array, zip(*test_data)))
 x_val = x_val[:1000]
 y_val = y_val[:1000]
-
-model = build_logistic_model(input_dim=8, output_dim=2)
-model.load_weights('logit_weights.h5')
-
-
-def delta_list(a, b):
-    n = len(a)
-    mask = [0 if sigmoid(_) <= 0.5 else 1 for _ in b]
-    challenges = [[] for _ in range(n)]
-    # get 1st ones
-    for i in range(len(mask)):
-        if mask[i] and len(challenges[0]) < N:
-            for j in range(n):
-                challenges[j].append(a[j][i])
-    row = [[] for _ in range(n)]
-    cur = [challenges[i][0] for i in range(n)]
-    for i in range(n):
-        row[i].append(cur[i] if cur[i] else -1)
-    for i in range(1, N):
-        for j in range(n):
-            cur[j] ^= challenges[j][i]
-            row[j].append(cur[j] if cur[j] else -1)
-    fitted = model.predict_classes(np.asarray(row))
-    return fitted, mask
+Y_val = np_utils.to_categorical(y_val, 2)
 
 
 def generate_challenges(a, b):
@@ -123,6 +93,11 @@ def generate_challenges(a, b):
         if mask[i] and len(challenges[0]) < N:
             for j in range(n):
                 challenges[j].append(a[j][i])
+    for i in range(n):
+        while len(challenges[i]) < N:
+            challenges[i].append(1)
+    # for i in range(n):
+    #     challenges[i] = a[i][-N:]
     row = [[] for _ in range(n)]
     cur = [challenges[i][0] for i in range(n)]
     for i in range(n):
@@ -131,7 +106,8 @@ def generate_challenges(a, b):
         for j in range(n):
             cur[j] ^= challenges[j][i]
             row[j].append(cur[j] if cur[j] else -1)
-    return row, mask
+    return challenges, mask
+
 
 def class_eq():
     cnt = [0, 0]
@@ -145,9 +121,9 @@ CHECKPOINT_FREQ = 10
 if __name__ == "__main__":
     class_eq()
 
-    bit_cnt = 255
+    bit_cnt = 256
     gen_size = bit_cnt
-    strategy = cma.Strategy(centroid=[0.0] * gen_size, sigma=1.0, lambda_=20)
+    strategy = cma.Strategy(centroid=[0.0] * gen_size, sigma=1.0, lambda_=10)
     toolbox.register("generate", strategy.generate, creator.Individual)
     toolbox.register("evaluate", loss)
     toolbox.register("update", strategy.update)

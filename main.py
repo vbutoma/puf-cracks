@@ -18,7 +18,7 @@ def load_data(load=False, n=SIZE, get_data_func=get_data_2, method=2, dump=False
     start_time = time.time()
     if not load:
         file_name = 'Base{}.txt'.format(n)
-        train_data, val_data, test_data = get_data_func(data_dir='data',
+        train_data, val_data, test_data = get_data_func(data_dir='data3',
                                                         file_name=file_name, preprocess=True, use_hash=False)
         if dump:
             with open('dumped/train_data_{}_{}.pkl'.format(method, n), 'wb') as f:
@@ -28,11 +28,11 @@ def load_data(load=False, n=SIZE, get_data_func=get_data_2, method=2, dump=False
             with open('dumped/test_data_{}_{}.pkl'.format(method, n), 'wb') as f:
                 pkl.dump(test_data, f)
     else:
-        with open("dumped/train_data_{}_{}.pkl".format(method, n), 'rb') as f:
+        with open("dumped3/train_data_{}_{}.pkl".format(method, n), 'rb') as f:
             train_data = pkl.load(f)
-        with open("dumped/val_data_{}_{}.pkl".format(method, n), 'rb') as f:
+        with open("dumped3/val_data_{}_{}.pkl".format(method, n), 'rb') as f:
             val_data = pkl.load(f)
-        with open("dumped/test_data_{}_{}.pkl".format(method, n), 'rb') as f:
+        with open("dumped3/test_data_{}_{}.pkl".format(method, n), 'rb') as f:
             test_data = pkl.load(f)
 
     print("Data loaded in {}".format(time.time() - start_time))
@@ -124,7 +124,7 @@ def run_tree(n=128):
 
 
 def run_logit(n=128):
-    train_data, val_data, test_data = load_data(load=False, n=n, get_data_func=get_data_2, method=2, dump=True)
+    train_data, val_data, test_data = load_data(load=True, n=n, get_data_func=get_data_2, method=3, dump=True)
     x_train, y_train = list(map(np.array, zip(*train_data)))
     x_val, y_val = list(map(np.array, zip(*test_data)))
     x_test, y_test = list(map(np.array, zip(*test_data)))

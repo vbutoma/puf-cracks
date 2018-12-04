@@ -26,6 +26,6 @@ def nn_model(input_dim, output_dim=1, lr=1e-1):
 def build_logistic_model(input_dim, output_dim, lr=1e-2):
     model = Sequential()
     model.add(Dense(output_dim, input_dim=input_dim, activation='sigmoid', kernel_regularizer=l2(0.)))
-    model.summary()
+    # model.summary()
     model.compile(loss='binary_crossentropy', metrics=['acc'], optimizer='sgd')
     return model
