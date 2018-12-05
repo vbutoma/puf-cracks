@@ -19,7 +19,7 @@ def get_data_2(data_dir='data', file_name='Base8.txt'):
             inp, target = row.split()
             h = sha256(inp.encode()).hexdigest()
             s = ''
-            for i in range(32):
+            for i in range(16):
                 part = h[i * 2:2 * (i + 1)]
                 x = int(part, 16)
                 ss = ''
@@ -27,8 +27,14 @@ def get_data_2(data_dir='data', file_name='Base8.txt'):
                     ss += str((x >> j) & 1)
                 s += ss
             row = [int(_) for _ in s]
-            # data.append([np.array([1 if x else -1 for x in row]), float(target)])
-            data.append([np.array(row), float(target)])
+
+            cur = row[0]
+            for i in range(1, len(row)):
+                cur ^= row[i]
+                row[i] = cur
+            row.append(1)
+            data.append([np.array([1 if x else -1 for x in row]), float(target)])
+            # data.append([np.array(row), float(target)])
 
     random.shuffle(data)
     train_count = int(dataset_size * train_split)
@@ -72,8 +78,6 @@ def test_sha():
         # print(part, x, ss)
         s += ss
     print(s)
-
-
 
 
 if __name__ == "__main__":

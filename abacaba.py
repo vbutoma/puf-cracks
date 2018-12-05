@@ -53,13 +53,12 @@ epochs = 30
 
 
 def loss(x):
-    challenges, mask = generate_challenges(x_val, x)
-    ch_train = np.asarray(challenges)
-    l_model = build_logistic_model(input_dim=N, output_dim=2)
-    history = l_model.fit(ch_train, Y_val, epochs=epochs, batch_size=int(100), verbose=0)
-    score = l_model.evaluate(ch_train, Y_val, verbose=0)
-    res = score[1] * bits_multiplier * bits_distribution(sum(mask))
-    print(score[1], res)
+    fitted = generate_challenges(x_val, x)
+    good, count = 0, len(fitted)
+    for i in range(count):
+        if fitted[i] == y_val[i]:
+            good += 1
+    res = good / count
     return (res, )
 
 
@@ -79,34 +78,17 @@ train_data, val_data, test_data = load_dumped(n=N)
 x_train, y_train = list(map(np.array, zip(*train_data)))
 x_val, y_val = list(map(np.array, zip(*test_data)))
 x_test, y_test = list(map(np.array, zip(*test_data)))
-x_val = x_val[:1000]
-y_val = y_val[:1000]
+x_val = x_val[:10000]
+y_val = y_val[:10000]
 Y_val = np_utils.to_categorical(y_val, 2)
 
 
-def generate_challenges(a, b):
-    n = len(a)
-    mask = [0 if sigmoid(_) <= 0.5 else 1 for _ in b]
-    challenges = [[] for _ in range(n)]
-    # get 1st ones
-    for i in range(len(mask)):
-        if mask[i] and len(challenges[0]) < N:
-            for j in range(n):
-                challenges[j].append(a[j][i])
-    for i in range(n):
-        while len(challenges[i]) < N:
-            challenges[i].append(1)
-    # for i in range(n):
-    #     challenges[i] = a[i][-N:]
-    row = [[] for _ in range(n)]
-    cur = [challenges[i][0] for i in range(n)]
-    for i in range(n):
-        row[i].append(cur[i] if cur[i] else -1)
-    for i in range(1, N):
-        for j in range(n):
-            cur[j] ^= challenges[j][i]
-            row[j].append(cur[j] if cur[j] else -1)
-    return challenges, mask
+def generate_challenges(challenges, b):
+    def delta(x, y):
+        return 0 if np.dot(x, y) < 0 else 1
+
+    fitted = [delta(_, b) for _ in challenges]
+    return fitted
 
 
 def class_eq():
@@ -121,7 +103,7 @@ CHECKPOINT_FREQ = 10
 if __name__ == "__main__":
     class_eq()
 
-    bit_cnt = 256
+    bit_cnt = N + 1
     gen_size = bit_cnt
     strategy = cma.Strategy(centroid=[0.0] * gen_size, sigma=1.0, lambda_=10)
     toolbox.register("generate", strategy.generate, creator.Individual)
