@@ -6,10 +6,12 @@ import os
 import random
 
 
+dataset_size = 58128
 dataset_size = 1e6
 train_split = 0.8
 val_split = 0.1
 test_split = 0.1
+N=16
 
 
 def get_data_2(data_dir='data', file_name='Base8.txt'):
@@ -29,6 +31,40 @@ def get_data_2(data_dir='data', file_name='Base8.txt'):
             row = [int(_) for _ in s]
             # data.append([np.array([1 if x else -1 for x in row]), float(target)])
             data.append([np.array(row), float(target)])
+
+    random.shuffle(data)
+    train_count = int(dataset_size * train_split)
+    val_count = int(dataset_size * val_split)
+    test_count = int(dataset_size * test_split)
+    return data[:train_count], data[train_count:train_count + val_count], \
+           data[train_count + val_count:train_count + val_count + test_count]
+
+
+def get_data_hash(data_dir='data', file_name='Base8.txt'):
+    data = []
+    answers = dict()
+    for row in open(os.path.join(data_dir, file_name)):
+        if len(row.split()) == 2:
+            inp, target = row.split()
+            answers[inp] = target
+    # mask - first n bits
+    for row in open(os.path.join(data_dir, file_name)):
+        if len(row.split()) == 2:
+            inp, target = row.split()
+            h = sha256(inp.encode()).hexdigest()
+            q = bin(int(h, 16))[2:]
+            x = q[:N]
+            if x in answers:
+                y = answers[x]
+                row = [int(_) for _ in q]
+                cur = row[0]
+                for i in range(1, len(row)):
+                    cur = row[i] ^ cur
+                    row[i] = cur
+
+                data.append([np.array([1 if x else -1 for x in row]), y])
+            # data.append([np.array(row), float(target)])
+    print(len(data))
 
     random.shuffle(data)
     train_count = int(dataset_size * train_split)
@@ -74,14 +110,10 @@ def test_sha():
     print(s)
 
 
-
-
 if __name__ == "__main__":
-    train_data, val_data, test_data = load_data(n=128, get_data_func=get_data_2, method=3, dump=True)
+    train_data, val_data, test_data = load_data(n=N, get_data_func=get_data_hash, method=3, dump=True)
     x_train, y_train = list(map(np.array, zip(*train_data)))
     x_val, y_val = list(map(np.array, zip(*test_data)))
     x_test, y_test = list(map(np.array, zip(*test_data)))
-    x_val = x_val[:2000]
-    y_val = y_val[:2000]
 
     # test_sha()

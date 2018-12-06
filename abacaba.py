@@ -12,7 +12,7 @@ import math
 from math import factorial as fact
 
 np.random.seed(42)
-N = 128
+N = 16
 
 creator.create("FitnessMax", base.Fitness, weights=(1.0,))
 creator.create("Individual", list, fitness=creator.FitnessMax)
@@ -56,10 +56,10 @@ def loss(x):
     challenges, mask = generate_challenges(x_val, x)
     ch_train = np.asarray(challenges)
     l_model = build_logistic_model(input_dim=N, output_dim=2)
-    history = l_model.fit(ch_train, Y_val, epochs=epochs, batch_size=int(100), verbose=0)
+    history = l_model.fit(ch_train, Y_val, epochs=epochs, batch_size=int(1e3), verbose=0)
     score = l_model.evaluate(ch_train, Y_val, verbose=0)
     res = score[1] * bits_multiplier * bits_distribution(sum(mask))
-    print(score[1], res)
+    print(score[1], res, mask)
     return (res, )
 
 
@@ -79,14 +79,15 @@ train_data, val_data, test_data = load_dumped(n=N)
 x_train, y_train = list(map(np.array, zip(*train_data)))
 x_val, y_val = list(map(np.array, zip(*test_data)))
 x_test, y_test = list(map(np.array, zip(*test_data)))
-x_val = x_val[:1000]
-y_val = y_val[:1000]
+x_val = x_val[:10000]
+y_val = y_val[:10000]
 Y_val = np_utils.to_categorical(y_val, 2)
 
 
 def generate_challenges(a, b):
     n = len(a)
     mask = [0 if sigmoid(_) <= 0.5 else 1 for _ in b]
+    # mask = [1 for _ in range(len(b))]
     challenges = [[] for _ in range(n)]
     # get 1st ones
     for i in range(len(mask)):
@@ -96,16 +97,6 @@ def generate_challenges(a, b):
     for i in range(n):
         while len(challenges[i]) < N:
             challenges[i].append(1)
-    # for i in range(n):
-    #     challenges[i] = a[i][-N:]
-    row = [[] for _ in range(n)]
-    cur = [challenges[i][0] for i in range(n)]
-    for i in range(n):
-        row[i].append(cur[i] if cur[i] else -1)
-    for i in range(1, N):
-        for j in range(n):
-            cur[j] ^= challenges[j][i]
-            row[j].append(cur[j] if cur[j] else -1)
     return challenges, mask
 
 

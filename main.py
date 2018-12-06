@@ -62,21 +62,16 @@ def train_logit_reg(n, x_train, y_train, x_val, y_val, x_test, y_test, epochs=10
     Y_test = np_utils.to_categorical(y_test, number_of_classes)
     # print(x_train[0].shape)
     model = build_logistic_model(input_dim=x_train[0].shape[0], output_dim=number_of_classes)
-    # history = model.fit(x_train, Y_train, epochs=epochs, batch_size=int(1e4), validation_data=(x_val, Y_val))
-    # model.save_weights('logit_weights.h5')
+    history = model.fit(x_train, Y_train, epochs=epochs, batch_size=int(1e4), validation_data=(x_val, Y_val))
+    model.save_weights('logit_weights1.h5')
     # plt.plot(history.history['acc'])
     # plt.xlabel('epoch number')
     # plt.ylabel('accuracy')
     # plt.savefig('logit_{}.png'.format(n))
     # plt.show()
-    model.load_weights('logit_weights.h5')
+    # model.load_weights('logit_weights.h5')
     score = model.evaluate(x_test, Y_test, verbose=0)
     res = model.predict_classes(x_test)
-    good = 0
-    for i in range(len(res)):
-        if res[i] == y_test[i]:
-            good += 1
-    print(good, len(res))
     with open("logs/logit_{}.txt".format(n), 'w') as file:
         print('Test score:', score[0])
         print('Test accuracy:', score[1])
@@ -116,7 +111,7 @@ def train_tree(n, x_train, y_train, x_val, y_val, x_test, y_test, nround=500):
 
 
 def run_tree(n=128):
-    train_data, val_data, test_data = load_data(load=False, n=n, get_data_func=get_data_2, method=2, dump=True)
+    train_data, val_data, test_data = load_data(load=True, n=n, get_data_func=get_data_2, method=3, dump=False)
     x_train, y_train = list(map(np.array, zip(*train_data)))
     x_val, y_val = list(map(np.array, zip(*test_data)))
     x_test, y_test = list(map(np.array, zip(*test_data)))
@@ -124,7 +119,7 @@ def run_tree(n=128):
 
 
 def run_logit(n=128):
-    train_data, val_data, test_data = load_data(load=True, n=n, get_data_func=get_data_2, method=3, dump=True)
+    train_data, val_data, test_data = load_data(load=True, n=n, get_data_func=get_data_2, method=3, dump=False)
     x_train, y_train = list(map(np.array, zip(*train_data)))
     x_val, y_val = list(map(np.array, zip(*test_data)))
     x_test, y_test = list(map(np.array, zip(*test_data)))
@@ -132,7 +127,7 @@ def run_logit(n=128):
 
 
 def run_net(n=128):
-    train_data, val_data, test_data = load_data(load=True, n=n, get_data_func=get_data_2, method=2, dump=False)
+    train_data, val_data, test_data = load_data(load=True, n=n, get_data_func=get_data_2, method=3, dump=False)
     x_train, y_train = list(map(np.array, zip(*train_data)))
     x_val, y_val = list(map(np.array, zip(*test_data)))
     x_test, y_test = list(map(np.array, zip(*test_data)))
@@ -142,9 +137,9 @@ def run_net(n=128):
 if __name__ == "__main__":
     sizes = [8 * (i + 1) for i in range(16)]
     print(sizes)
-    sizes = [8]
+    sizes = [16]
     for _ in sizes:
-        # run_tree(_)
-        run_logit(_)
+        run_tree(_)
+        # run_logit(_)
         # run_net(_)
 
